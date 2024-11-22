@@ -1,0 +1,32 @@
+# Usa una imagen base de Conda que ya incluye Python
+FROM continuumio/miniconda3
+
+# Establece el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copia el archivo requirements.txt al contenedor
+COPY requirements.txt /app/
+
+# Crea y activa un entorno conda con Python 3.8
+RUN conda create --name myenv python=3.8 -y
+
+# Añade el comando para activar el entorno Conda
+RUN echo "conda activate myenv" >> ~/.bashrc
+
+# Instala las librerías necesarias usando Conda dentro del entorno
+RUN conda install -n myenv -c conda-forge dlib opencv cmake face_recognition -y
+
+# Instala las dependencias de Python desde requirements.txt dentro del entorno
+RUN /bin/bash -c "source activate myenv && pip install --no-cache-dir -r requirements.txt"
+
+# Asegúrate de que conda esté actualizado
+RUN /bin/bash -c "source activate myenv && conda update -n base -c defaults conda"
+
+# Copia el resto de tu aplicación al contenedor
+COPY . /app/
+
+# Expón el puerto que usará el servidor uvicorn (por defecto es 8000)
+EXPOSE 8000
+
+# Establece el entorno de conda y ejecuta uvicorn para iniciar la aplicación FastAPI
+CMD [ "conda", "run", "-n", "myenv", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
